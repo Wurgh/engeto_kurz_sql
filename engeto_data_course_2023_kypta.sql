@@ -1,36 +1,44 @@
-SELECT 
-	* 
-FROM healthcare_provider;
-
-SELECT
-	name,
-	provider_type 
-FROM healthcare_provider;
-
 -- linecomment
 
 /*
  * blockcomment
  */ 
 
-SELECT
-	name,
-	provider_type 
+-- Úkol 1: Vypište všechna data z tabulky healthcare_provider.
+SELECT 
+	*
+FROM healthcare_provider;
+
+-- Úkol 2: Vypište pouze sloupce se jménem a typem poskytovatele ze stejné tabulky jako v předchozím příkladu.
+SELECT 
+	name 
+	,provider_type 
+FROM healthcare_provider;
+
+-- Úkol 3: Předchozí dotaz upravte tak, že vypíše pouze prvních 20 záznamů v tabulce.
+SELECT 
+	name
+	,provider_type
 FROM healthcare_provider
+ORDER BY name ASC
 LIMIT 20;
 
+-- Starts from 21 row.
 SELECT
 	name,
 	provider_type 
 FROM healthcare_provider
 LIMIT 20 OFFSET 20;
 
--- defaultně ASC
+-- Úkol 4: Vypište z tabulky healthcare_provider záznamy seřazené podle kódu kraje vzestupně.
+-- default ASC
 SELECT *
 FROM healthcare_provider 
 ORDER BY region_code DESC;
 
--- snakecase
+/* Úkol 5: Vypište ze stejné tabulky jako v předchozím příkladě sloupce se 
+jménem poskytovatele, kódem kraje a kódem okresu. Data seřaďte podle kódu okresu sestupně. 
+Nakonec vyberte pouze prvních 500 záznamů. */
 SELECT 
 	name,
 	region_code,
@@ -39,12 +47,17 @@ FROM healthcare_provider
 ORDER BY district_code DESC
 LIMIT 500;
 
+
+-- WHERE
+/* Úkol 1: Vyberte z tabulky healthcare_provider všechny záznamy poskytovatelů 
+zdravotních služeb, kteří poskytují služby v Praze (kraj Praha). */
 -- Praha
 SELECT *
 FROM healthcare_provider 
 WHERE region_code = 'CZ010';
 
--- ne praha
+/* Úkol 2: Vyberte ze stejné tabulky název a kotaktní informace 
+poskytovatelů, kteří nemají místo poskytování v Praze (kraj Praha). */
 SELECT *
 FROM healthcare_provider 
 WHERE region_code != 'CZ010';
@@ -54,6 +67,8 @@ FROM healthcare_provider
 WHERE region_code != 'CZ010'; -- WHERE region_code <> 'CZ010'; je to ekvivalentní
 -- https://mariadb.com/kb/en/comparison-operators/ 
 
+/* Úkol 3: Vypište názvy poskytovatelů, kódy krajů místa poskytování 
+a místa sídla u takových poskytovatelů, u kterých se tyto hodnoty rovnají. */
 SELECT 
 	name,
 	region_code,
@@ -61,6 +76,8 @@ SELECT
 FROM healthcare_provider 
 WHERE region_code = residence_region_code;
 
+/* Úkol 4: Vypište název a telefon takových poskytovatelů, 
+kteří svůj telefon vyplnili do registru. */
 SELECT 
 	name,
 	phone
