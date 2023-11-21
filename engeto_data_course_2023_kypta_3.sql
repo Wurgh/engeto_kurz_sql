@@ -9,7 +9,7 @@
 -- Úkol 1: Spočítejte počet řádků v tabulce czechia_price.
 SELECT count(1)
 FROM czechia_price 
-
+-- Ekvivalentní
 SELECT count (region_code)
 FROM czechia_price; 
 
@@ -18,7 +18,7 @@ konkrétním sloupcem jako argumentem funkce COUNT(). */
 
 SELECT count(id) AS rows_count 
 FROM czechia_payroll; 
-
+-- vs. nesprávné řešení, které má v hodnotách NULLy
 SELECT count(value) AS rows_count 
 FROM czechia_payroll; 
 
@@ -42,9 +42,9 @@ SELECT
 	count(id) AS rown_in_category 
 FROM czechia_price
 GROUP BY category_code, year_of_entry;
-
 -- datum funkce https://mariadb.com/kb/en/date-time-functions/
 
+-- Funkce SUM()
 -- Úkol 1: Sečtěte všechny průměrné počty zaměstnanců v datové sadě průměrných platů v České republice.
 select SUM(value) as value_sum
 from czechia_payroll 
@@ -69,7 +69,6 @@ where data_from = '2018-01-05';
 /* Úkol 4: Vypište tři sloupce z tabulky czechia_price: 
  * kód kategorie, počet řádků pro ni a sumu hodnot průměrných cen. 
  * To vše pouze pro data v roce 2018. */
-
 SELECT 
 	category_code,
 	count(1) AS row_count,
@@ -78,6 +77,7 @@ FROM czechia_price
 WHERE year(date_from) = 2018
 GROUP BY category_code;
 
+-- Další agregační funkce
 -- Úkol 1: Vypište maximální hodnotu průměrné mzdy z tabulky czechia_payroll.
 SELECT max(value)
 FROM czechia_payroll
@@ -131,6 +131,7 @@ FROM czechia_price
 GROUP BY category_code, region_code
 ORDER BY average DESC;
 
+-- Další operace v klauzuli SELECT
 -- Úkol 1: Vyzkoušejte si následující dotazy. Co vypisují a proč?
 SELECT SQRT(-16);
 SELECT 10/0;
@@ -143,14 +144,11 @@ SELECT ROUND(-1.56);
 
 /* Úkol 2: Vypočítejte průměrné ceny kategorií potravin 
  * bez použití funkce AVG() s přesností na dvě desetinná místa. */
-
 SELECT category_code, round(sum(value)/count(value), 2)
 FROM czechia_price
 GROUP BY category_code;
 
-/*
- * Úkol 3: Jaké datové typy budou mít hodnoty v následujících dotazech?
- */
+-- Úkol 3: Jaké datové typy budou mít hodnoty v následujících dotazech?
 SELECT 1;
 SELECT 1.0;
 SELECT 1 + 1;
@@ -161,7 +159,6 @@ SELECT 1 + '12tatata';
 SELECT 1 + 'a' + '2ta';
 
 -- Úkol 4: Vyzkoušejte si spustit dotazy, jež operují s textovými řetězci.
-
 SELECT CONCAT('Hi, ', 'Engeto lektor here!');
 SELECT CONCAT('We have ', COUNT(DISTINCT category_code), ' price categories.') AS info
 FROM czechia_price;
@@ -172,134 +169,72 @@ SELECT name,
 FROM czechia_price_category;
 
 -- Úkol 5: Vyzkoušejte si operátor modulo (zbytek po celočíselném dělení).
-
 SELECT 5 % 2;
 SELECT 14 % 5;
 SELECT 15 % 5;
--- Na co se používá dělitelnost jedenácti?
 SELECT 123456789874 % 11;
 SELECT 123456759874 % 11;
 
 -- Úkol 6: Využijte operátor modulo na zjištění sudosti populace v tabulce economies.
--- Populace - zbytek po dělení dvěma:
-SELECT
-    country, `year`, population, population % 2 AS division_rest
-FROM economies e
-WHERE population IS NOT NULL;
-
--- Populace - flag zda je sudá:
-SELECT
-    country, `year`, population, NOT population % 2 AS is_even
-FROM economies e
+SELECT country, population, NOT population % 2
+FROM economies
 WHERE population IS NOT NULL;
 
 -- Populace - flag zda je sudá se selekcí:
 SELECT
-    country, `year`, population, NOT population % 2 AS is_even
+    country, 'year', population, NOT population % 2 AS is_even
 FROM economies e
 WHERE population IS NOT NULL
     AND population % 2 = 0;
 
-
 -- stringy: https://mariadb.com/kb/en/string-functions/
-
-
--- Úkol 1: Spočítejte počet řádků v tabulce czechia_price.
-SELECT count(1)
-FROM czechia_price;
-
-/* Úkol 2: Spočítejte počet řádků v tabulce czechia_payroll s 
- * konkrétním sloupcem jako argumentem funkce COUNT(). */
-SELECT count(id)
-FROM czechia_payroll;
-
--- Úkol 3: Z kolika záznamů v tabulce czechia_payroll jsme schopni vyvodit průměrné počty zaměstnanců?
-SELECT count(id)
-FROM czechia_payroll 
-WHERE 
-	value_type_code = 316 AND 
-	value IS NOT NULL;
-
-
--- Úkol 4: Vypište všechny cenové kategorie a počet řádků každé z nich v tabulce czechia_price.
-SELECT category_code, count(id)
-FROM czechia_price
-GROUP BY category_code;
-
--- Úkol 5: Rozšiřte předchozí dotaz o dadatečné rozdělení dle let měření.
-SELECT category_code, count(id), YEAR(date_from) AS year_of_entry
-FROM czechia_price
-GROUP BY category_code, year_of_entry
-ORDER BY year_of_entry, category_code;
-
--- Úkol 1: Sečtěte všechny průměrné počty zaměstnanců v datové sadě průměrných platů v České republice.
-SELECT SUM(value)
-FROM czechia_payroll
-WHERE value_type_code = 316;
-
--- Úkol 2: Sečtěte průměrné ceny pro jednotlivé kategorie pouze v Jihomoravském kraji.
-SELECT  category_code, SUM(value)
-FROM czechia_price
-WHERE region_code = 'CZ064'
-GROUP BY category_code;
-
-/* Úkol 3: Sečtěte průměrné ceny potravin za všechny kategorie, 
-u kterých měření probíhalo od (date_from) 15. 1. 2018. */
-SELECT category_code, SUM(value), date_from
-FROM czechia_price 
-WHERE date_from LIKE '2018-01-15%'
-GROUP BY category_code;
-
--- správné řešení:
-SELECT
-    SUM(value) AS sum_of_average_prices
-FROM czechia_price
-WHERE date_from = CAST('2018-01-15' AS date);
-
-/* Úkol 4: Vypište tři sloupce z tabulky czechia_price: kód kategorie, 
- * počet řádků pro ni a sumu hodnot průměrných cen. 
- * To vše pouze pro data v roce 2018. */
-SELECT category_code, COUNT(category_code), sum(value)
-FROM czechia_price
-WHERE date_from LIKE '2018%' -- nebo WHERE YEAR(date_from) = 2018
-GROUP BY category_code;
-
 /*
- * Úkol 1: Vypište maximální hodnotu průměrné mzdy z tabulky czechia_payroll.
+ * Díky agregačním funkcím jsme schopni efektivně počítat sumy, průměry, 
+ * zjišťovat maxima/minima nebo získat počet řádků různých datových sad. 
+ * Tyto operace jsou nad relačními databázemi velice efektivní a často 
+ * je potřebujeme pří základním průzkumu libovoných dat nebo na vypsání
+ * souhrnných statistik.
  */
-SELECT MAX(value)
-FROM czechia_payroll 
-WHERE value_type_code = 5958;
-
-
-SELECT category_code, MIN(value)
-FROM czechia_price 
-WHERE YEAR(date_from) = 2015 OR YEAR(date_from) = 2016 OR  YEAR(date_from) = 2017 
--- nebo WHERE YEAR(date_from) BETWEEN 2015 AND 2017
-GROUP BY category_code;
-   
-
-
-/* Úkol 1:
-Zjistěte celkovou populaci kontinentů.
-Zjistěte průměrnou rozlohu států rozdělených podle kontinentů
-Zjistěte počty států podle rozdělených podle hlavního náboženství
+/* Úkol 1: Zjistěte celkovou populaci kontinentů.
 Státy vhodně seřaďte.
 */
 SELECT continent, SUM(population)
 FROM countries 
 WHERE continent IS NOT NULL
 GROUP BY continent;
+-- Zjistěte průměrnou rozlohu států rozdělených podle kontinentů.
 SELECT continent, round(AVG(surface_area)) AS avg_surcon
 FROM countries
 WHERE continent IS NOT NULL
 GROUP BY continent
 ORDER BY avg_surcon DESC;
+-- Zjistěte počty států podle rozdělených podle hlavního náboženství
 SELECT religion, count(country)
 FROM countries 
 WHERE religion IS NOT NULL
 GROUP BY religion
 ORDER BY count(country) DESC;
+
+-- Úkol 2: Zjistěte celkovou populaci, průměrnou populaci a počet států pro každý kontinent
+SELECT continent, sum(population), round(avg(population)), count(country)
+FROM countries AS c 
+WHERE continent IS NOT NULL
+GROUP BY continent
+ORDER BY sum(population) DESC;
+
+-- Zjistěte celkovou rozlohu kontinentu a průměrnou rozlohu států ležících na daném kontinentu
+SELECT continent, sum(surface_area), round(avg(surface_area))
+FROM countries AS c
+WHERE continent IS NOT NULL
+GROUP BY continent
+ORDER BY round(avg(surface_area)) DESC;
+
+-- Zjistěte celkovou populaci a počet států rozdělených podle hlavního náboženství
+SELECT religion, sum(population), count(country)
+FROM countries AS c 
+WHERE religion IS NOT NULL 
+GROUP BY religion
+ORDER BY sum(population) DESC;
 
 /*
  * Úkol 3: Pro každý kontinent zjistěte podíl počtu 
@@ -315,14 +250,13 @@ FROM countries
 WHERE continent IS NOT NULL AND landlocked IS NOT NULL
 GROUP BY continent;
 
-
 /*
  * Úkol 4: Zjistěte celkovou populaci ve státech rozdělených 
  * podle kontinentů a regionů (sloupec region_in_world). 
  * Seřaďte je podle kontinentů abecedně a podle populace sestupně.
  */
 SELECT continent, region_in_world, sum(population)
-FROM countries 
+FROM countries
 WHERE continent IS NOT NULL AND region_in_world IS NOT NULL
 GROUP BY continent, region_in_world
 ORDER BY continent ASC, sum(population) DESC;
@@ -348,7 +282,8 @@ GROUP BY region_in_world;
 /*
 Úkol 1: Vytvořte v tabulce covid19_basic nový sloupec, 
 kde od confirmed odečtete polovinu recovered a 
-přejmenujete ho jako novy_sloupec. Seřaďte podle data sestupně.*/ 
+přejmenujete ho jako novy_sloupec. Seřaďte podle data sestupně.
+*/ 
 SELECT *, confirmed - recovered/2 AS novy_sloupec
 FROM covid19_basic
 ORDER BY date DESC
@@ -417,7 +352,6 @@ WHERE country IN (
 GROUP BY date, country
 ORDER BY date;
 
-
 /* Úkol 11: Zjistěte celkový počet nakažených v Arkansasu 
  * (použijte tabulku covid19_detail_us_differences). */
 SELECT SUM(confirmed)
@@ -466,7 +400,6 @@ WHERE lat >= 60 AND province IS NULL;
  * v zemích ležících severně od 60 rovnoběžky. 
  * Spočítejte, kolik takových zemích je.
  * Vytvořte sloupec max_min_ratio, ve kterém nejvyšší populaci vydělíte nejnižší.*/
-
 SELECT round(AVG(population),2)
 		, MAX(population)
 		, MIN(population)
@@ -548,7 +481,8 @@ ORDER BY diff_avg_density DESC;
  * Úkol 10: Vyberte název, hustotu zalidnění a rozlohu zemí v západní Evropě. 
  * Najděte stát s nejvyšší hustotou zalidnění. 
  * Spočítejte obyčejný a vážený průměr hustoty zalidnění v západní Evropě 
- * kromě státu s nejvyšší hustotou. Výsledky srovnejte s oběma průměry spočítanými ze všech zemí.*/
+ * kromě státu s nejvyšší hustotou. Výsledky srovnejte s oběma průměry spočítanými ze všech zemí.
+ */
 SELECT country, population_density, surface_area 
 FROM countries
 WHERE region_in_world = 'Western Europe'
@@ -556,25 +490,15 @@ ORDER BY population_density DESC
 LIMIT 1;
 
 SELECT 
-0 AS 'Monaco_included'
-,round(avg(population_density)) AS simple_avg 
-,round(sum(population_density*surface_area)/sum(surface_area)) AS weighted_avg_density
+	0 AS 'Monaco_included'
+	,round(avg(population_density)) AS simple_avg 
+	,round(sum(population_density*surface_area)/sum(surface_area)) AS weighted_avg_density
 FROM countries
 WHERE region_in_world = 'Western Europe' AND country != 'Monaco'
 UNION
 SELECT
-    1 AS 'Monaco_included',
-    simple_avg, 
-    weighted_avg_density
+    1 AS 'Monaco_included'
+    ,simple_avg 
+    ,weighted_avg_density
 FROM v_tomas_kypta_population_density 
 WHERE region_in_world = 'Western Europe';
--- The used SELECT statements have a different number of columns PROČ?
-
-
-SELECT 
-0 AS 'Monaco_included'
-,round(avg(population_density)) AS simple_avg
-,round(avg(CASE WHEN region_in_world = 'Western Europe' AND country != 'Monaco' THEN population_density END),2) AS xxx
-,round(sum(population_density*surface_area)/sum(surface_area)) AS weighted_avg_density
-FROM countries
-WHERE region_in_world = 'Western Europe' AND country != 'Monaco';
