@@ -523,9 +523,202 @@ LEFT JOIN lookup_table as lt
  * Úkol 7: Jaký je průbeh počtu nakažených na milion obyvatel
  * v Česke republice a v Německu
  */
+SELECT
+	cb.date
+	, cb.country
+	, (cb.confirmed / 1000000) / cz.population AS weighted_cz_confirmed
+	, cb2.country
+	, (cb2.confirmed * 1000000) / ger.population AS weighted_ger_confirmed
+FROM
+	(SELECT
+		*
+	FROM
+		covid19_basic
+	WHERE
+		country = 'Czechia') AS cb
+LEFT JOIN lookup_table AS cz ON
+	cb.country = cz.country
+CROSS JOIN (
+	SELECT
+		*
+	FROM
+		covid19_basic
+	WHERE
+		country = 'Germany') AS cb2
+LEFT JOIN lookup_table AS ger ON
+	cb2.country = ger.country;
+
+-- NEBO
+SELECT
+	base.date
+	, base.country
+	, round((base.confirmed * 1000000)/ a.population, 2)
+FROM
+	(SELECT date
+	, country
+	, confirmed
+	FROM
+		covid19_basic cb
+	WHERE
+		country IN ('Czechia', 'Germany')
+         ) base
+LEFT JOIN (
+	SELECT country, population
+	FROM
+		lookup_table lt
+	WHERE
+		country IN ('Czechia', 'Germany')
+			AND province IS NULL
+         ) a
+ON base.country = a.country
+ORDER BY date, country;
+
+/*
+ * Úkol 8: Seřaďte státy podle počtu celkově nakažených na milion obyvatel k 30.8.2020?
+ */
+SELECT cb.country, date, round((cb.confirmed * 1000000) / lt.population) AS weighted_confirmed, lt.population
+FROM  covid19_basic AS cb
+LEFT JOIN lookup_table AS lt 
+	ON cb.country = lt.country
+	AND lt.province IS NULL
+WHERE cb.date = '2020-08-30'
+ORDER BY weighted_confirmed DESC;
+
+/*
+ * Úkol 9: Ukaž celosvětový průběh celkově nakaženych na milion obyvatel
+ */
+
+SELECT date, round((sum(cb.confirmed) * 1000000) / sum(lt.population)) AS weighted_confirmed
+FROM  covid19_basic AS cb
+LEFT JOIN lookup_table AS lt 
+	ON cb.country = lt.country
+	AND lt.province IS NULL
+GROUP BY cb.date;
+
+/*
+ * Úkol 10: Z tabulky lookup_table vyberte pouze země s populací menší než milion 
+ * a připojte k této tabulce průběh jejich nakažených. (Použijte inner join)
+ */
+SELECT cb.*, lt_small.population
+FROM (SELECT country, population FROM lookup_table AS lt WHERE population < 1000000) AS lt_small
+INNER JOIN covid19_basic AS cb 
+	ON lt_small.country = cb.country;
+
+/* Úkol 11: Udělejte seznam všech zemí pro všechny datumy z tabulky covid19_basic */
+SELECT dates.date,
+    countries.country
+FROM (SELECT DISTINCT date FROM covid19_basic) dates
+CROSS JOIN (SELECT DISTINCT country FROM covid19_basic) countries;
+-- Both lists of all dates for every country?
+SELECT cb.date, cb2.country
+FROM (SELECT DISTINCT date FROM covid19_basic) AS cb
+CROSS JOIN covid19_basic AS cb2 
+	ON cb.date = cb2.date;
+
+
+/* Úkol 12: Udělejte seznam všech zemí pro všechny datumy z tabulky covid19_basic. 
+ * K této tabulce připojte přírůstky a kde nejsou data vložte 0.
+ */
+SELECT dates.date, countries.country, CASE WHEN cbd.confirmed IS NULL THEN 0 ELSE cbd.confirmed END AS confirmed
+FROM (SELECT DISTINCT date FROM covid19_basic) dates
+CROSS JOIN (SELECT DISTINCT country FROM covid19_basic) countries
+LEFT JOIN covid19_basic_differences AS cbd
+	ON dates.date = cbd.date
+	AND countries.country = cbd.country 
+	
+
+-- COVID-19: pokračování JOIN
+/* Úkol 1: K tabulce covid19_detail_global_differences připojte tabulku lookup_table. 
+ * Zjistěte počty nakažených na milion obyvatel v Anglii, Walesu, Skotsku a Severním Irsku. 
+ * Podívejte se, jestli se počty významně liší o víkendu a ve všedních dnech. */
+SELECT base.date, lt. population, base.province, base.confirmed
+	, round((1000000/lt.population)*base.confirmed) AS conf_per_mil
+	, CASE WHEN weekday(base.date) IN (5,6) THEN 1 ELSE 0 END AS is_weekend
+FROM (SELECT * FROM covid19_detail_global_differences AS cdgd  WHERE country = 'United Kingdom' 
+				AND province IN ('Wales', 'Northern Ireland', 'Scotland', 'England') AND confirmed IS NOT NULL) AS base 
+LEFT JOIN lookup_table AS lt 
+	ON base.country = lt.country
+	AND base.province = lt.province
+	
+/*
+ * Úkol 2: Srovnejte počty nově nakažených na sto tisíc obyvatel v České republice 
+ * a ve Skotsku za posledních 14 dní. Výsledná tabulka bude mít 4 sloupce: 
+ * datum, počet v ČR, počet ve Skotsku a binární proměnnou pro víkend.
+ */
+-- řešení které vyplivne 14 posledních dní v tabulce
+SELECT czechs.date, czechs.czech_confirmed, scots.scot_confirmed, CASE WHEN weekday(czechs.date) IN (5,6) THEN 1 ELSE 0 END AS is_weekend 
+	FROM	(
+		SELECT cbd.date, round((100000/lt.population)*cbd.confirmed) AS czech_confirmed
+		FROM (SELECT * FROM covid19_basic_differences WHERE country = 'Czechia' AND confirmed IS NOT NULL) AS cbd
+		LEFT JOIN lookup_table AS lt
+			ON cbd.country = lt.country) AS czechs
+JOIN (
+		SELECT scotland.date, round((100000/lt.population)*scotland.confirmed) AS scot_confirmed 
+		FROM (SELECT * FROM covid19_detail_global_differences WHERE country = 'United Kingdom' AND province = 'Scotland' AND confirmed IS NOT NULL) AS scotland
+		LEFT JOIN lookup_table AS lt
+			ON scotland.country = lt.country AND scotland.province = lt.province
+		) AS scots
+	ON czechs.date = scots.date
+WHERE scot_confirmed IS NOT NULL
+ORDER BY czechs.date DESC
+LIMIT 14;
+
+-- řešení, které počítá se současným časem a posledními 14 dny
+SELECT cz.date , case when weekday(cz.date) in (5,6) then 1 else 0 end as weekend,
+    round( cz.confirmed_czech / cz.pop_czech * 100000 ) as confirmed_czech,
+    round( sc.confirmed_scot / sc.pop_scot * 100000 ) as confirmed_scot
+FROM (
+        SELECT a.country , a.date , a.confirmed as confirmed_czech , lt.population as pop_czech
+        FROM covid19_basic_differences a 
+        JOIN lookup_table lt 
+            on a.country = lt.country 
+        WHERE a.country = 'Czechia' 
+            and a.date >= DATE_ADD(CURRENT_DATE(), INTERVAL - 14 day) 
+    ) cz JOIN ( 
+        SELECT b.province , b.date , b.confirmed as confirmed_scot , lt2.population as pop_scot
+        FROM covid19_detail_global_differences b
+        JOIN lookup_table lt2
+            on b.province = lt2.province 
+        WHERE b.province = 'Scotland'
+    ) sc on cz.date = sc.date
+ORDER BY cz.date desc;
+
+	
+/*
+ * Úkol 3: Z tabulky covid19_basic vyberte počty nově nakažených pro Českou republiku v říjnu. 
+ * K této tabulce připojte maximální denní teplotu z tabulky weather.
+ */
+SELECT  cb.country, cb.date, cb.confirmed , lt.iso3 , c.capital_city , w.max_temp
+FROM (SELECT country, date, confirmed FROM covid19_basic WHERE country = 'Czechia' AND date LIKE '%-10-%') AS cb 
+LEFT JOIN lookup_table AS lt 
+	ON cb.country = lt.country
+LEFT JOIN countries AS c 
+	ON lt.iso3 = c.iso3
+	AND c.capital_city = 'Praha'
+LEFT JOIN (SELECT city , date , max(temp) as max_temp
+        FROM weather  
+        WHERE date LIKE '%-10-%' AND city = 'Prague'
+        GROUP BY city, date) AS w
+	ON cb.date = w.date;
+
+
+SELECT *
+FROM weather
+WHERE date LIKE '2020-10-02%' AND city = 'Prague';
 
 
 
-
-
-
+SELECT c.country, c.date, c.confirmed , lt.iso3 , c2.capital_city , w.max_temp
+FROM covid19_basic as c
+JOIN lookup_table lt 
+    on c.country = lt.country 
+    and c.country = 'Czechia'
+    and month(c.date) = 10
+JOIN countries c2
+    on lt.iso3 = c2.iso3
+JOIN (  SELECT w.city , w.date , max(w.temp) as max_temp
+        FROM weather w 
+        GROUP BY w.city, w.date) w
+    on c2.capital_city = w.city 
+    and c.date = w.date
+ORDER BY c.date desc;
