@@ -23,7 +23,7 @@ JOIN czechia_price_category AS cpc
  * informaci o krajích ČR a vypište informace o cenách společně s názvem kraje.
  */
 -- 108249
-SELECT *
+SELECT cr.*
 FROM czechia_price cp
 LEFT JOIN czechia_region AS cr 
 	ON cr.code = cp.region_code;
